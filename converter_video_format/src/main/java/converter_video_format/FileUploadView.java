@@ -1,5 +1,7 @@
 package converter_video_format;
 
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.io.Serializable;
 import java.io.BufferedReader;
 import java.io.File;
@@ -8,6 +10,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.bean.ManagedBean;
@@ -24,19 +28,27 @@ import org.primefaces.json.JSONArray;
 import org.primefaces.json.JSONException;
 import org.primefaces.json.JSONObject;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
 
-@ManagedBean(name = "FileUploadView", eager = true)
+
+@ManagedBean
 @RequestScoped
 public class FileUploadView implements Serializable{
 	private static final long serialVersionUID = 1L; 
 	private String destination="/tmp/";
 	private String api_key="0cdab19d2adc83a856e9dd7220343ab8";
-	private String adress_file = "";
+	private String address_file = "";
 	private String url_get = "";
 	
 	public String getUrl()
 	{
-		return url_get;
+		return (url_get);
 	}
  
     public void handleFileUpload(FileUploadEvent event) throws IOException, JSONException {
@@ -47,12 +59,19 @@ public class FileUploadView implements Serializable{
         } catch (IOException e) {
         	e.printStackTrace();
         }
-        this.adress_file = this.destination + "sample.dv";
-        String url = getUrlStream();
+        
+        this.address_file = this.destination + event.getFile().getFileName();
+        String url = getUrlStream(event.getFile().getFileName());
         System.out.println(url);
+        
+        uploadToAmazon();
+        
+        //salva o video gerado na maquina local
+        saveUrl(url);
+        
     }
     
-    private void copyFile(String fileName, InputStream in) {
+    public void copyFile(String fileName, InputStream in) {
     	try {
     	// write the inputStream to a FileOutputStream
     	OutputStream out = new FileOutputStream(new File(this.destination + fileName));
@@ -70,7 +89,7 @@ public class FileUploadView implements Serializable{
     	}
     }
     
-    public String getUrlStream() throws IOException, JSONException
+    public String getUrlStream(String fileName) throws IOException, JSONException
     {
     	//create job
     	CloseableHttpClient httpclient = HttpClients.createDefault();
@@ -86,7 +105,7 @@ public class FileUploadView implements Serializable{
 	    	list_obj.put(0, my_obj_internal);
 	    	
 	    	JSONObject my_obj = new JSONObject();
-	    	my_obj.put("input", this.adress_file);
+	    	my_obj.put("input", "https://s3-sa-east-1.amazonaws.com/alexcorrea/" + fileName);
 	    	my_obj.put("outputs", my_obj_internal);
 	    	
 	    	String json_string = my_obj.toString();
@@ -106,6 +125,10 @@ public class FileUploadView implements Serializable{
 				JSONArray outputs = output.getJSONArray("outputs");
 				this.url_get = outputs.getJSONObject(0).getString("url");
 	    	}
+	    	catch (Exception e)
+	    	{
+	    		System.out.println(e);
+	    	}
 	    	finally
 	    	{
 	    		response.close();
@@ -115,7 +138,72 @@ public class FileUploadView implements Serializable{
     	{
 	    	httpclient.close();	
     	}
-    	this.url_get = "https://zencoder-temp-storage-us-east-1.s3.amazonaws.com/o/20140906/13d3913a408b2559b831c339296297c6/4039f7dbdc71d00e816e521549a7349e.mp4?AWSAccessKeyId=AKIAI456JQ76GBU7FECA&Signature=wgtYo%2FCY515siVZyfMZksKLCV%2F8%3D&Expires=1410123555";
     	return this.url_get;
-    }    
+    }
+    
+    public void uploadToAmazon() throws IOException
+    {
+    	String existingBucketName = "alexcorrea";
+		String keyName = "alex.jpg";
+		  
+		String filePath = "/tmp/alex.jpg";
+		String amazonFileUploadLocationOriginal=existingBucketName+"/";
+	
+		String accessKey = "AKIAI7KOT344ZYGDVQKA";
+        String secretKey = "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";
+        try
+        {
+        	AWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
+        	AmazonS3 s3Client = new AmazonS3Client(credentials);
+        	
+        	FileInputStream stream = new FileInputStream(filePath);
+    		ObjectMetadata objectMetadata = new ObjectMetadata();
+    		PutObjectRequest putObjectRequest = new PutObjectRequest(amazonFileUploadLocationOriginal, keyName, stream, objectMetadata);
+    		PutObjectResult result = s3Client.putObject(putObjectRequest);
+    		System.out.println("Etag:" + result.getETag() + "-->" + result);
+        }
+        catch (Exception e)
+    	{
+    		System.out.println(e);
+    	}
+    }
+    
+    public void saveUrl(final String urlString)
+            throws MalformedURLException, IOException 
+    {
+    	String filename = "";
+    	//para testes
+    	if (this.address_file == "")
+    	{
+    		filename = "/tmp/test.mp4";
+    	}
+    	else
+    	{
+    		filename = this.address_file;
+    	}
+        BufferedInputStream in = null;
+        FileOutputStream fout = null;
+        try 
+        {
+            in = new BufferedInputStream(new URL(urlString).openStream());
+            fout = new FileOutputStream(filename);
+
+            final byte data[] = new byte[1024];
+            int count;
+            while ((count = in.read(data, 0, 1024)) != -1) 
+            {
+                fout.write(data, 0, count);
+            }
+        } finally 
+        {
+            if (in != null) 
+            {
+                in.close();
+            }
+            if (fout != null) 
+            {
+                fout.close();
+            }
+        }
+    }
 }
