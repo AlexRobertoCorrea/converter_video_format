@@ -2,7 +2,6 @@ package converter_video_format;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
-import java.io.Serializable;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -32,15 +31,15 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 
 
 @ManagedBean
-@RequestScoped
-public class FileUploadView implements Serializable{
-	private static final long serialVersionUID = 1L; 
+//@RequestScoped
+public class FileUploadView{
 	private String destination="/tmp/";
 	private String api_key="0cdab19d2adc83a856e9dd7220343ab8";
 	private String address_file = "";
@@ -60,14 +59,18 @@ public class FileUploadView implements Serializable{
         	e.printStackTrace();
         }
         
-        this.address_file = this.destination + event.getFile().getFileName();
+        this.address_file = this.destination;
+        
+        //faz upload do video a ser convertido
+        uploadToAmazon(event.getFile().getFileName());
+        
         String url = getUrlStream(event.getFile().getFileName());
-        System.out.println(url);
-        
-        uploadToAmazon();
-        
+              
         //salva o video gerado na maquina local
-        saveUrl(url);
+        String filename = saveUrl(url);
+        
+        //faz upload do video convertido
+        uploadToAmazon(filename);
         
     }
     
@@ -141,13 +144,13 @@ public class FileUploadView implements Serializable{
     	return this.url_get;
     }
     
-    public void uploadToAmazon() throws IOException
+    public void uploadToAmazon(String fileName) throws IOException
     {
     	String existingBucketName = "alexcorrea";
-		String keyName = "alex.jpg";
+    	String keyName = fileName;
 		  
-		String filePath = "/tmp/alex.jpg";
-		String amazonFileUploadLocationOriginal=existingBucketName+"/";
+		String filePath = this.address_file + fileName;
+		String amazonFileUploadLocationOriginal=existingBucketName;
 	
 		String accessKey = "AKIAI7KOT344ZYGDVQKA";
         String secretKey = "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";
@@ -155,10 +158,12 @@ public class FileUploadView implements Serializable{
         {
         	AWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
         	AmazonS3 s3Client = new AmazonS3Client(credentials);
+        	s3Client.setEndpoint("https://s3-sa-east-1.amazonaws.com");
         	
         	FileInputStream stream = new FileInputStream(filePath);
     		ObjectMetadata objectMetadata = new ObjectMetadata();
     		PutObjectRequest putObjectRequest = new PutObjectRequest(amazonFileUploadLocationOriginal, keyName, stream, objectMetadata);
+    		putObjectRequest.withCannedAcl(CannedAccessControlList.PublicRead);
     		PutObjectResult result = s3Client.putObject(putObjectRequest);
     		System.out.println("Etag:" + result.getETag() + "-->" + result);
         }
@@ -168,25 +173,35 @@ public class FileUploadView implements Serializable{
     	}
     }
     
-    public void saveUrl(final String urlString)
+    public String saveUrl(String urlString)
             throws MalformedURLException, IOException 
     {
     	String filename = "";
     	//para testes
+    	this.address_file = "/tmp/";
     	if (this.address_file == "")
     	{
     		filename = "/tmp/test.mp4";
     	}
     	else
     	{
-    		filename = this.address_file;
+    		String[] parts = urlString.split("?");
+    		String[] bars = parts[0].split("/");
+    		for (int i=0; i < bars.length; i++)
+    		{
+    			if(bars[i].contains(".mp4"))
+    			{
+    				filename = bars[i];
+    				break;
+    			}
+    		}
     	}
         BufferedInputStream in = null;
         FileOutputStream fout = null;
         try 
         {
             in = new BufferedInputStream(new URL(urlString).openStream());
-            fout = new FileOutputStream(filename);
+            fout = new FileOutputStream(this.address_file + filename);
 
             final byte data[] = new byte[1024];
             int count;
@@ -194,7 +209,8 @@ public class FileUploadView implements Serializable{
             {
                 fout.write(data, 0, count);
             }
-        } finally 
+        } 
+        finally 
         {
             if (in != null) 
             {
@@ -205,5 +221,6 @@ public class FileUploadView implements Serializable{
                 fout.close();
             }
         }
+        return filename;
     }
 }
