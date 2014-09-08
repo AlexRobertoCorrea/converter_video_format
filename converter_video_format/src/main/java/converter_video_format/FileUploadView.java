@@ -60,18 +60,20 @@ public class FileUploadView{
         }
         
         this.address_file = this.destination;
+        this.url_get = "http://www.youtube.com/v/KZnUr8lcqjo";
         
         //faz upload do video a ser convertido
-        uploadToAmazon(event.getFile().getFileName());
+        //uploadToAmazon(event.getFile().getFileName());
         
-        String url = getUrlStream(event.getFile().getFileName());
+        //String url = getUrlStream(event.getFile().getFileName());
+        //String url = getUrlStream("sample.dv");
               
         //salva o video gerado na maquina local
-        String filename = saveUrl(url);
+        //String filename = saveUrl(url);
         
         //faz upload do video convertido
-        uploadToAmazon(filename);
-        
+        //uploadToAmazon(filename);
+        this.url_get = "https://s3-sa-east-1.amazonaws.com/alexcorrea/a63d0051de478ef4cbabf4046d8b1db6.mp4";
     }
     
     public void copyFile(String fileName, InputStream in) {
@@ -185,7 +187,7 @@ public class FileUploadView{
     	}
     	else
     	{
-    		String[] parts = urlString.split("?");
+    		String[] parts = urlString.split("\\?");
     		String[] bars = parts[0].split("/");
     		for (int i=0; i < bars.length; i++)
     		{

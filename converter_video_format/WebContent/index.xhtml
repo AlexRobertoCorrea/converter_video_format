@@ -3,7 +3,8 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
 	xmlns:f="http://java.sun.com/jsf/core"
 	xmlns:h="http://java.sun.com/jsf/html"
-	xmlns:p="http://primefaces.org/ui">
+	xmlns:p="http://primefaces.org/ui"
+	xmlns:ui="http://java.sun.com/jsf/facelets">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <h:head>
 	<script src="js/jquery-2.1.1.min.js"></script>	
@@ -15,27 +16,33 @@
 	<h:form>
 	    <p:fileUpload fileUploadListener="#{fileUploadView.handleFileUpload}" mode="advanced" dragDropSupport="false"
 	           update="messages" sizeLimit="100000000000000" fileLimit="1" allowTypes="/(\.|\/)(dv|gif|jpe?g|png)$/" />
-	    <p:growl id="messages" showDetail="true" ajax="false"/>
+	    <p:growl id="messages" showDetail="true" ajax="true"/>
 	</h:form>
 	
 	<video width="320" height="240" controls="controls">
 	  <source id="source" src="#" type="video/mp4"></source>
 	  Seu navegador não suporta esse formato de vídeo.
 	</video>
-	
+
+	<button onclick="myFunction()">Click me</button>
+		
 	<script type="text/javascript">
-	$(document).ready(function(){
-		url = "#{fileUploadView.url}";
-		if (url == "")
-		{
-			$("video").hide();
-		}
-		else
-		{
+		$(document).ready(function(){
+			url = "#{fileUploadView.url}";
+			if (url == "")
+			{
+				$("video").hide();
+			}
+			else
+			{
+				$("#source").attr("src", url);
+				$("video").show();
+			}
+		});
+		function myFunction() {
 			$("#source").attr("src", url);
-			$("video").show();
+			$("video").show();	
 		}
-	});
 	</script>
 </h:body>
 </html>
