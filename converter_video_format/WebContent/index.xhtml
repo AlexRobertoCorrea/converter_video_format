@@ -3,8 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
 	xmlns:f="http://java.sun.com/jsf/core"
 	xmlns:h="http://java.sun.com/jsf/html"
-	xmlns:p="http://primefaces.org/ui"
-	xmlns:ui="http://java.sun.com/jsf/facelets">
+	xmlns:p="http://primefaces.org/ui">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <h:head>
 	<script src="js/jquery-2.1.1.min.js"></script>	
@@ -40,6 +39,7 @@
 			}
 		});
 		function myFunction() {
+			url = "#{fileUploadView.url}";
 			$("#source").attr("src", url);
 			$("video").show();	
 		}

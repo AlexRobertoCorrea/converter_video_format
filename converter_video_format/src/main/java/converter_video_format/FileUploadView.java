@@ -1,10 +1,12 @@
 package converter_video_format;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -40,9 +42,8 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 @ManagedBean
 //@RequestScoped
 public class FileUploadView{
-	private String destination="/tmp/";
 	private String api_key="0cdab19d2adc83a856e9dd7220343ab8";
-	private String address_file = "";
+	private String address_file = "/tmp/";
 	private String url_get = "";
 	
 	public String getUrl()
@@ -59,27 +60,23 @@ public class FileUploadView{
         	e.printStackTrace();
         }
         
-        this.address_file = this.destination;
-        this.url_get = "http://www.youtube.com/v/KZnUr8lcqjo";
-        
         //faz upload do video a ser convertido
-        //uploadToAmazon(event.getFile().getFileName());
+        uploadToAmazon(event.getFile().getFileName());
         
-        //String url = getUrlStream(event.getFile().getFileName());
-        //String url = getUrlStream("sample.dv");
+        String url = getUrlStream(event.getFile().getFileName());
               
         //salva o video gerado na maquina local
-        //String filename = saveUrl(url);
+        String filename = saveUrl(url);
         
         //faz upload do video convertido
-        //uploadToAmazon(filename);
+        uploadToAmazon(filename);
         this.url_get = "https://s3-sa-east-1.amazonaws.com/alexcorrea/a63d0051de478ef4cbabf4046d8b1db6.mp4";
     }
     
     public void copyFile(String fileName, InputStream in) {
     	try {
     	// write the inputStream to a FileOutputStream
-    	OutputStream out = new FileOutputStream(new File(this.destination + fileName));
+    	OutputStream out = new FileOutputStream(new File(this.address_file + fileName));
     	int read = 0;
     	byte[] bytes = new byte[1024];
     	while ((read = in.read(bytes)) != -1) {
@@ -154,8 +151,8 @@ public class FileUploadView{
 		String filePath = this.address_file + fileName;
 		String amazonFileUploadLocationOriginal=existingBucketName;
 	
-		String accessKey = "AKIAI7KOT344ZYGDVQKA";
-        String secretKey = "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";
+		String accessKey = "";
+        String secretKey = "";
         try
         {
         	AWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
