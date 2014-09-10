@@ -6,11 +6,13 @@ import java.io.FileInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -44,15 +46,29 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 public class FileUploadView{
 	private String api_key="0cdab19d2adc83a856e9dd7220343ab8";
 	private String address_file = "/tmp/";
-	private String url_get = "";
+	private String url = "";
 	
-	public String getUrl()
+	public String getUrl() throws IOException
 	{
-		return (url_get);
+		try
+		{
+			//return this.url;
+			@SuppressWarnings("resource")
+			BufferedReader reader = new BufferedReader(new FileReader("/tmp/temp.txt"));
+			this.url = reader.readLine();
+			@SuppressWarnings("resource")
+			PrintWriter writer = new PrintWriter("/tmp/temp.txt");
+	        writer.print("");
+			return this.url;
+		}
+		catch (Exception e)
+		{
+			return "";
+		}
 	}
  
     public void handleFileUpload(FileUploadEvent event) throws IOException, JSONException {
-        FacesMessage message = new FacesMessage("Succesful", event.getFile().getFileName() + " is uploaded.");
+    	FacesMessage message = new FacesMessage("Succesful", event.getFile().getFileName() + " is uploaded.");
         FacesContext.getCurrentInstance().addMessage(null, message);
         try {
         	copyFile(event.getFile().getFileName(), event.getFile().getInputstream());
@@ -70,7 +86,9 @@ public class FileUploadView{
         
         //faz upload do video convertido
         uploadToAmazon(filename);
-        this.url_get = "https://s3-sa-east-1.amazonaws.com/alexcorrea/a63d0051de478ef4cbabf4046d8b1db6.mp4";
+        PrintWriter writer = new PrintWriter("/tmp/temp.txt");
+        writer.print(this.url);
+        writer.close();
     }
     
     public void copyFile(String fileName, InputStream in) {
@@ -125,7 +143,7 @@ public class FileUploadView{
  
 				JSONObject output = new JSONObject(br.readLine());
 				JSONArray outputs = output.getJSONArray("outputs");
-				this.url_get = outputs.getJSONObject(0).getString("url");
+				this.url = outputs.getJSONObject(0).getString("url");
 	    	}
 	    	catch (Exception e)
 	    	{
@@ -140,7 +158,7 @@ public class FileUploadView{
     	{
 	    	httpclient.close();	
     	}
-    	return this.url_get;
+    	return this.url;
     }
     
     public void uploadToAmazon(String fileName) throws IOException
@@ -148,10 +166,10 @@ public class FileUploadView{
     	String existingBucketName = "alexcorrea";
     	String keyName = fileName;
 		  
-		String filePath = this.address_file + fileName;
-		String amazonFileUploadLocationOriginal=existingBucketName;
+	String filePath = this.address_file + fileName;
+	String amazonFileUploadLocationOriginal=existingBucketName;
 	
-		String accessKey = "";
+	String accessKey = "";
         String secretKey = "";
         try
         {
@@ -176,8 +194,6 @@ public class FileUploadView{
             throws MalformedURLException, IOException 
     {
     	String filename = "";
-    	//para testes
-    	this.address_file = "/tmp/";
     	if (this.address_file == "")
     	{
     		filename = "/tmp/test.mp4";
